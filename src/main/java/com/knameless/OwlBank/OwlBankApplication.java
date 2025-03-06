@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class OwlBankApplication {
 
 	public static void main(String[] args) {
-		System.out.println("waos");
 		SpringApplication.run(OwlBankApplication.class, args);
 	}
 
