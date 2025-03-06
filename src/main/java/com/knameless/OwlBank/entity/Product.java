@@ -25,7 +25,7 @@ public class Product {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private StatusAccount state;
+    private StatusAccount status;
 
     @Column(nullable = false)
     private double balance;
