@@ -1,7 +1,8 @@
 package com.knameless.OwlBank.service;
 
-import com.knameless.OwlBank.entity.Client;
+import com.knameless.OwlBank.dto.ProductDTO;
 import com.knameless.OwlBank.entity.Product;
+import com.knameless.OwlBank.repository.ClientRepository;
 import com.knameless.OwlBank.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,21 +14,36 @@ import java.util.Optional;
 @Service
 public class ProductService {
     @Autowired
-    private ProductRepository productRepository;
+    private final ProductRepository productRepository;
+    private final ClientRepository clientRepository;
 
-    public Product createProduct(Product product) {
-        Client client = product.getClient();
-        if (client == null) {
-            throw new RuntimeException("The product must be linked to a client");
-        }
-        if (productRepository.existsByNumber(product.getNumber())) {
-            throw new RuntimeException("The account number must be unique");
-        }
-        if (product.getType().equals("SAVINGS") && product.getBalance() < 0) {
+    @Autowired
+    public ProductService(ProductRepository productRepository, ClientRepository clientRepository) {
+        this.clientRepository = clientRepository;
+        this.productRepository = productRepository;
+    }
+
+    public ProductDTO createProduct(ProductDTO productDTO) {
+        boolean clientExists = clientRepository.existsById(productDTO.clientId());
+
+        if (!clientExists) throw new RuntimeException("The client doesn't exist!");
+
+        if (productDTO.type().equals("SAVINGS") && productDTO.balance() < 0)
             throw new RuntimeException("A savings account cannot have a negative balance");
-        }
+
+        Product product = new Product();
+
+        product.setClient(clientRepository.findById(productDTO.clientId()).orElseThrow(() ->
+                new RuntimeException("Client not found!")));
+        product.setType(productDTO.type());
+        product.setNumber(productDTO.number());
+        product.setBalance(productDTO.balance());
+        product.setGmfExempt(productDTO.gmfExempt());
+        product.setStatus(productDTO.status());
         product.setCreationDate(LocalDate.now());
-        return productRepository.save(product);
+
+        productRepository.save(product);
+        return new ProductDTO(product.getId(), product.getType(), product.getNumber(), product.getStatus(), product.getBalance(), product.isGmfExempt(), product.getClient().getId(), product.getCreationDate());
     }
 
     public List<Product> getProducts() {

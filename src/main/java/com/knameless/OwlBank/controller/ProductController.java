@@ -1,5 +1,6 @@
 package com.knameless.OwlBank.controller;
 
+import com.knameless.OwlBank.dto.ProductDTO;
 import com.knameless.OwlBank.entity.Product;
 import com.knameless.OwlBank.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,7 @@ public class ProductController {
     private ProductService productService;
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
+    public ResponseEntity<ProductDTO> createProduct(@RequestBody ProductDTO product) {
         return ResponseEntity.ok(productService.createProduct(product));
     }
 

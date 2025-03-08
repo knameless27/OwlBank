@@ -1,5 +1,6 @@
 package com.knameless.OwlBank.controller;
 
+import com.knameless.OwlBank.dto.ClientDTO;
 import com.knameless.OwlBank.entity.Client;
 import com.knameless.OwlBank.service.ClientService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +20,7 @@ public class ClientController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Client>> getClients() {
+    public ResponseEntity<List<ClientDTO>> getClients() {
         return ResponseEntity.ok(clientService.getClients());
     }
 
@@ -31,8 +32,8 @@ public class ClientController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Client> updateClient(@PathVariable Long id, @RequestBody Client cliente) {
-        return ResponseEntity.ok(clientService.updateClient(id, cliente));
+    public ResponseEntity<Client> updateClient(@PathVariable Long id, @RequestBody ClientDTO client) {
+        return ResponseEntity.ok(clientService.updateClient(id, client));
     }
 
     @DeleteMapping("/{id}")
