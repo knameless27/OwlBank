@@ -1,5 +1,6 @@
 package com.knameless.OwlBank.service;
 
+import com.knameless.OwlBank.dto.TransactionDTO;
 import com.knameless.OwlBank.entity.Product;
 import com.knameless.OwlBank.entity.Transaction;
 import com.knameless.OwlBank.repository.ProductRepository;
@@ -21,32 +22,25 @@ public class TransactionService {
     private ProductRepository productRepository;
 
     @Transactional
-    public Transaction createTransaction(Transaction transaction) {
-        String transactionType = transaction.getTransactionType().toString().toLowerCase();
-        Product originAccount = productRepository.findById(transaction.getOriginAccount().getId())
+    public TransactionDTO createTransaction(TransactionDTO transactionDTO) {
+        String transactionType = transactionDTO.transactionType().toString().toLowerCase();
+
+        Product originAccount = productRepository.findById(transactionDTO.originAccountId())
                 .orElseThrow(() -> new RuntimeException("Origin account not found"));
 
+        Product destinationAccount = null;
+
         switch (transactionType) {
-            case "consignment":
-                originAccount.setBalance(originAccount.getBalance() + transaction.getAmount());
+            case "deposit":
+                makeDeposit(originAccount, transactionDTO);
                 break;
 
             case "withdrawal":
-                if (originAccount.getBalance() < transaction.getAmount()) {
-                    throw new RuntimeException("Insufficient funds");
-                }
-                originAccount.setBalance(originAccount.getBalance() - transaction.getAmount());
+                makeWithdrawal(originAccount, transactionDTO);
                 break;
 
             case "transfer":
-                Product destinationAccount = productRepository.findById(transaction.getDestinationAccount().getId())
-                        .orElseThrow(() -> new RuntimeException("Destination account not found"));
-                if (originAccount.getBalance() < transaction.getAmount()) {
-                    throw new RuntimeException("Insufficient funds for transfer");
-                }
-                originAccount.setBalance(originAccount.getBalance() - transaction.getAmount());
-                destinationAccount.setBalance(destinationAccount.getBalance() + transaction.getAmount());
-                productRepository.save(destinationAccount);
+                destinationAccount = makeTransfer(originAccount, transactionDTO);
                 break;
 
             default:
@@ -54,11 +48,62 @@ public class TransactionService {
         }
 
         productRepository.save(originAccount);
-        transaction.setTransactionDate(LocalDate.now());
-        return transactionRepository.save(transaction);
+
+        Transaction transaction = new Transaction();
+        transaction.setTransactionType(transactionDTO.transactionType());
+        transaction.setAmount(transactionDTO.amount());
+        transaction.setOriginAccount(originAccount);
+        transaction.setDestinationAccount(destinationAccount);
+
+        transaction = transactionRepository.save(transaction);
+
+        return new TransactionDTO(
+                transaction.getId(),
+                transaction.getTransactionType(),
+                transaction.getAmount(),
+                transaction.getOriginAccount().getId(),
+                transaction.getDestinationAccount() != null ? transaction.getDestinationAccount().getId() : null,
+                transaction.getTransactionDate()
+        );
     }
 
-    public Optional<Transaction> getTransactionById(Long id) {
-        return transactionRepository.findById(id);
+    private void makeDeposit(Product originAccount, TransactionDTO transactionDTO) {
+        originAccount.setBalance(originAccount.getBalance() + transactionDTO.amount());
     }
+
+    private void makeWithdrawal(Product originAccount, TransactionDTO transactionDTO) {
+        if (originAccount.getBalance() < transactionDTO.amount())
+            throw new RuntimeException("Insufficient funds");
+
+        originAccount.setBalance(originAccount.getBalance() - transactionDTO.amount());
+    }
+
+    private Product makeTransfer(Product originAccount, TransactionDTO transactionDTO) {
+        Product destinationAccount = null;
+
+        destinationAccount = productRepository.findById(transactionDTO.destinationAccountId())
+                .orElseThrow(() -> new RuntimeException("Destination account not found"));
+
+        if (originAccount.getBalance() < transactionDTO.amount())
+            throw new RuntimeException("Insufficient funds for transfer");
+
+        originAccount.setBalance(originAccount.getBalance() - transactionDTO.amount());
+        destinationAccount.setBalance(destinationAccount.getBalance() + transactionDTO.amount());
+
+        return productRepository.save(destinationAccount);
+    }
+
+    public TransactionDTO getTransactionById(Long id) {
+        return transactionRepository.findById(id).map(transaction ->
+                new TransactionDTO(
+                        transaction.getId(),
+                        transaction.getTransactionType(),
+                        transaction.getAmount(),
+                        transaction.getOriginAccount() != null ? transaction.getOriginAccount().getId() : null,
+                        transaction.getDestinationAccount() != null ? transaction.getDestinationAccount().getId() : null,
+                        transaction.getTransactionDate()
+                )
+        ).orElseThrow(() -> new RuntimeException("Transaction not found!"));
+    }
+
 }

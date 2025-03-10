@@ -3,7 +3,9 @@ package com.knameless.OwlBank.controller;
 import com.knameless.OwlBank.dto.ClientDTO;
 import com.knameless.OwlBank.entity.Client;
 import com.knameless.OwlBank.service.ClientService;
+import com.knameless.OwlBank.utils.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -25,10 +27,8 @@ public class ClientController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Client> getClientById(@PathVariable Long id) {
-        return clientService.getClientById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ClientDTO> getClientById(@PathVariable Long id) {
+        return ResponseEntity.ok(clientService.getClientById(id));
     }
 
     @PutMapping("/{id}")
@@ -37,8 +37,7 @@ public class ClientController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteClient(@PathVariable Long id) {
-        clientService.deleteClient(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ApiResponse> deleteClient(@PathVariable Long id) {
+        return clientService.deleteClient(id);
     }
 }
