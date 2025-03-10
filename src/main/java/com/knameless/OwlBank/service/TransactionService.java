@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -23,30 +22,40 @@ public class TransactionService {
 
     @Transactional
     public Transaction createTransaction(Transaction transaction) {
+        String transactionType = transaction.getTransactionType().toString().toLowerCase();
         Product originAccount = productRepository.findById(transaction.getOriginAccount().getId())
                 .orElseThrow(() -> new RuntimeException("Origin account not found"));
 
-        if (transaction.getTransactionType().equals("withdrawal") || transaction.getTransactionType().equals("transfer")) {
-            if (originAccount.getBalance() < transaction.getAmount()) {
-                throw new RuntimeException("Insufficient funds");
-            }
-            originAccount.setBalance(originAccount.getBalance() - transaction.getAmount());
-        }
+        switch (transactionType) {
+            case "consignment":
+                originAccount.setBalance(originAccount.getBalance() + transaction.getAmount());
+                break;
 
-        if (transaction.getTransactionType().equals("deposit") || transaction.getTransactionType().equals("transfer")) {
-            Product destinationAccount = productRepository.findById(transaction.getDestinationAccount().getId())
-                    .orElseThrow(() -> new RuntimeException("Destination account not found"));
-            destinationAccount.setBalance(destinationAccount.getBalance() + transaction.getAmount());
-            productRepository.save(destinationAccount);
+            case "withdrawal":
+                if (originAccount.getBalance() < transaction.getAmount()) {
+                    throw new RuntimeException("Insufficient funds");
+                }
+                originAccount.setBalance(originAccount.getBalance() - transaction.getAmount());
+                break;
+
+            case "transfer":
+                Product destinationAccount = productRepository.findById(transaction.getDestinationAccount().getId())
+                        .orElseThrow(() -> new RuntimeException("Destination account not found"));
+                if (originAccount.getBalance() < transaction.getAmount()) {
+                    throw new RuntimeException("Insufficient funds for transfer");
+                }
+                originAccount.setBalance(originAccount.getBalance() - transaction.getAmount());
+                destinationAccount.setBalance(destinationAccount.getBalance() + transaction.getAmount());
+                productRepository.save(destinationAccount);
+                break;
+
+            default:
+                throw new RuntimeException("Invalid transaction type");
         }
 
         productRepository.save(originAccount);
         transaction.setTransactionDate(LocalDate.now());
         return transactionRepository.save(transaction);
-    }
-
-    public List<Transaction> getTransactions() {
-        return transactionRepository.findAll();
     }
 
     public Optional<Transaction> getTransactionById(Long id) {

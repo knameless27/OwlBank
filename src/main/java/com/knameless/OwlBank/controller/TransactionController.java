@@ -19,11 +19,6 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.createTransaction(transaction));
     }
 
-    @GetMapping
-    public ResponseEntity<List<Transaction>> getTransactions() {
-        return ResponseEntity.ok(transactionService.getTransactions());
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<Transaction> getTransactionById(@PathVariable Long id) {
         return transactionService.getTransactionById(id)
